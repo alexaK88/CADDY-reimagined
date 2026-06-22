@@ -11,4 +11,4 @@ All rights are reserved. Use, copying, modification, redistribution, research us
 
 If permission is granted, attribution must be given to Aleksandra Karpova and this repository.
 
-For permission requests, contact: [your email].
+For permission requests, contact: aleksandra.karpova042@gmail.com.
