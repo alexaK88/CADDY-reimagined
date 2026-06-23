@@ -6,7 +6,6 @@ from typing import TextIO
 from logger import get_logger
 from ..schemas import RawWearablePacket
 
-
 logger = get_logger(__name__)
 
 
