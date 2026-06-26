@@ -10,8 +10,9 @@ from collections.abc import AsyncIterator
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.routes import health, missions
+from api.routes import health, missions, runtime
 from mission_backend.mission_backend import MissionBackend
+from mission_runtime.mission_runtime import MissionRuntimeManager
 
 
 @asynccontextmanager
@@ -21,8 +22,14 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """
 
     app.state.mission_backend = MissionBackend()
+    app.state.mission_runtime = MissionRuntimeManager(backend=app.state.mission_backend, )
 
     yield
+
+    status = app.state.mission_runtime.get_status()
+
+    if status.state == "RUNNING":
+        await app.state.mission_runtime.stop(reason="API shutdown.", )
 
     app.state.mission_backend.reset()
 
@@ -37,9 +44,10 @@ def create_app() -> FastAPI:
                                "summaries."), version="0.1.0", lifespan=lifespan, )
 
     app.add_middleware(CORSMiddleware, allow_origins=["http://127.0.0.1:5173", "http://localhost:5173", ],
-        allow_credentials=True, allow_methods=["*"], allow_headers=["*"], )
+                       allow_credentials=True, allow_methods=["*"], allow_headers=["*"], )
     app.include_router(health.router)
     app.include_router(missions.router)
+    app.include_router(runtime.router)
 
     return app
 

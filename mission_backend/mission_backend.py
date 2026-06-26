@@ -17,7 +17,8 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from mission_backend.schemas import (MissionBackendSummary, MissionRunStatus, MissionSnapshot, )
+from mission_backend.schemas import (DiverOperatorStatus, MissionBackendSummary, MissionOperatorStatus,
+                                     MissionRunStatus, MissionSnapshot, )
 from mission_logging.schemas import MissionEvent
 
 
@@ -140,25 +141,63 @@ class MissionBackend:
         latest_event = self._events[-1] if self._events else None
 
         return MissionSnapshot(mission_id=self._mission_id or "unknown", scenario=self._scenario or "unknown",
-            status=self._status,
+                               status=self._status,
 
-            started_at_utc=self._started_at_utc, ended_at_utc=self._ended_at_utc,
+                               started_at_utc=self._started_at_utc, ended_at_utc=self._ended_at_utc,
 
-            events_received=len(self._events),
+                               events_received=len(self._events),
 
-            last_event_time_s=(latest_event.elapsed_time_s if latest_event is not None else None),
-            current_wearable_safety_state=(latest_event.wearable_safety_state if latest_event is not None else None),
-            current_received_safety_state=(latest_event.received_safety_state if latest_event is not None else None),
-            current_robot_mode=(latest_event.robot_mode if latest_event is not None else None),
-            current_surface_mission_state=(latest_event.surface_mission_state if latest_event is not None else None),
+                               last_event_time_s=(latest_event.elapsed_time_s if latest_event is not None else None),
+                               current_wearable_safety_state=(
+                                   latest_event.wearable_safety_state if latest_event is not None else None),
+                               current_received_safety_state=(
+                                   latest_event.received_safety_state if latest_event is not None else None),
+                               current_robot_mode=(latest_event.robot_mode if latest_event is not None else None),
+                               current_surface_mission_state=(
+                                   latest_event.surface_mission_state if latest_event is not None else None),
 
-            active_wearable_alarm_codes=(latest_event.wearable_alarm_codes if latest_event is not None else []),
-            active_surface_alert_codes=(latest_event.surface_alert_codes if latest_event is not None else []),
+                               active_wearable_alarm_codes=(
+                                   latest_event.wearable_alarm_codes if latest_event is not None else []),
+                               active_surface_alert_codes=(
+                                   latest_event.surface_alert_codes if latest_event is not None else []),
 
-            emergency_event_count=self._count_emergency_events(), warning_event_count=self._count_warning_events(),
-            stale_data_event_count=self._count_stale_data_events(),
+                               emergency_event_count=self._count_emergency_events(),
+                               warning_event_count=self._count_warning_events(),
+                               stale_data_event_count=self._count_stale_data_events(),
 
-            latest_event=latest_event, )
+                               latest_event=latest_event)
+
+    def get_operator_status(self) -> MissionOperatorStatus:
+        """
+        Return compact UI-facing mission and diver status.
+
+        This avoids sending every mission event to the dashboard.
+        """
+
+        snapshot = self.get_snapshot()
+        latest_event = snapshot.latest_event
+
+        divers: list[DiverOperatorStatus] = []
+
+        if latest_event is not None:
+            divers.append(
+                DiverOperatorStatus(diver_id="diver_01", wearable_safety_state=latest_event.wearable_safety_state,
+                                    received_safety_state=latest_event.received_safety_state,
+                                    robot_mode=latest_event.robot_mode,
+                                    surface_mission_state=latest_event.surface_mission_state,
+                                    active_alarm_codes=latest_event.wearable_alarm_codes,
+                                    active_surface_alert_codes=latest_event.surface_alert_codes,
+                                    latest_event_time_s=latest_event.elapsed_time_s,
+                                    latest_packet_age_s=latest_event.latest_diver_packet_age_s,
+                                    diver_data_stale=latest_event.diver_data_stale,
+                                    robot_notify_surface=latest_event.robot_notify_surface, ))
+
+        return MissionOperatorStatus(mission_id=snapshot.mission_id, scenario=snapshot.scenario, status=snapshot.status,
+                                     events_received=snapshot.events_received,
+                                     current_surface_mission_state=snapshot.current_surface_mission_state,
+                                     emergency_event_count=snapshot.emergency_event_count,
+                                     warning_event_count=snapshot.warning_event_count,
+                                     stale_data_event_count=snapshot.stale_data_event_count, divers=divers, )
 
     def get_summary(self) -> MissionBackendSummary:
         """
@@ -168,10 +207,12 @@ class MissionBackend:
         snapshot = self.get_snapshot()
 
         return MissionBackendSummary(mission_id=snapshot.mission_id, scenario=snapshot.scenario, status=snapshot.status,
-            events_received=snapshot.events_received,
-            current_surface_mission_state=snapshot.current_surface_mission_state,
-            current_robot_mode=snapshot.current_robot_mode, emergency_event_count=snapshot.emergency_event_count,
-            warning_event_count=snapshot.warning_event_count, stale_data_event_count=snapshot.stale_data_event_count, )
+                                     events_received=snapshot.events_received,
+                                     current_surface_mission_state=snapshot.current_surface_mission_state,
+                                     current_robot_mode=snapshot.current_robot_mode,
+                                     emergency_event_count=snapshot.emergency_event_count,
+                                     warning_event_count=snapshot.warning_event_count,
+                                     stale_data_event_count=snapshot.stale_data_event_count, )
 
     def reset(self) -> None:
         """

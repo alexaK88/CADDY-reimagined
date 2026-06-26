@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from api.dependencies import get_mission_backend
 from api.schemas import (ApiMessage, MissionSnapshotResponse, MissionSummaryResponse, StartMissionRequest, )
 from mission_backend.mission_backend import MissionBackend
-from mission_backend.schemas import MissionSnapshot
+from mission_backend.schemas import MissionSnapshot, MissionOperatorStatus
 from mission_logging.schemas import MissionEvent
 
 router = APIRouter(prefix="/missions", tags=["missions"], )
@@ -104,6 +104,21 @@ def get_recent_events(limit: int = Query(default=10, ge=1, le=500),
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+@router.get("/operator-status", response_model=MissionOperatorStatus)
+def get_operator_status(
+    backend: MissionBackend = Depends(get_mission_backend),
+) -> MissionOperatorStatus:
+    """
+    Return compact operator-facing mission status.
+
+    This endpoint is intended for the React dashboard. It avoids returning the
+    full event timeline on every poll.
+    """
+
+    try:
+        return backend.get_operator_status()
+    except RuntimeError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 @router.post("/finish", response_model=MissionSnapshotResponse)
 def finish_mission(backend: MissionBackend = Depends(get_mission_backend), ) -> MissionSnapshotResponse:

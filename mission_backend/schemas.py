@@ -89,3 +89,46 @@ class MissionBackendSummary(BaseModel):
     emergency_event_count: int
     warning_event_count: int
     stale_data_event_count: int
+
+
+class DiverOperatorStatus(BaseModel):
+    """
+    Latest UI-facing status for one diver.
+    """
+
+    diver_id: str
+    wearable_safety_state: str | None = None
+    received_safety_state: str | None = None
+    robot_mode: str | None = None
+    surface_mission_state: str | None = None
+
+    active_alarm_codes: list[str] = Field(default_factory=list)
+    active_surface_alert_codes: list[str] = Field(default_factory=list)
+
+    latest_event_time_s: float | None = Field(default=None, ge=0)
+    latest_packet_age_s: float | None = Field(default=None, ge=0)
+
+    diver_data_stale: bool = False
+    robot_notify_surface: bool = False
+
+
+class MissionOperatorStatus(BaseModel):
+    """
+    UI-facing status snapshot.
+
+    This is intentionally compact. It avoids exposing every packet update to
+    the dashboard.
+    """
+
+    mission_id: str
+    scenario: str
+    status: MissionRunStatus
+
+    events_received: int
+
+    current_surface_mission_state: str | None = None
+    emergency_event_count: int
+    warning_event_count: int
+    stale_data_event_count: int
+
+    divers: list[DiverOperatorStatus] = Field(default_factory=list)

@@ -1,33 +1,53 @@
 import { useEffect, useState } from "react";
 
-import { fetchMissionSummary, fetchRecentEvents } from "./api/missionApi";
+import {
+  fetchOperatorStatus,
+  fetchRuntimeStatus,
+  startRuntime,
+  stopRuntime,
+} from "./api/missionApi";
 import "./App.css";
 import { ApiErrorCard } from "./components/ApiErrorCard";
 import { DashboardHeader } from "./components/DashboardHeader";
+import { DiverStatusCard } from "./components/DiverStatusCard";
+import { MissionControlPanel } from "./components/MissionControlPanel";
 import { MissionOverview } from "./components/MissionOverview";
-import { RecentEventsTable } from "./components/RecentEventsTable";
-import type { MissionEvent, MissionSummary } from "./types/mission";
+import type {
+  MissionOperatorStatus,
+  MissionRuntimeStatus,
+} from "./types/mission";
 
 function App() {
-  const [summary, setSummary] = useState<MissionSummary | null>(null);
-  const [events, setEvents] = useState<MissionEvent[]>([]);
+  const [runtimeStatus, setRuntimeStatus] =
+    useState<MissionRuntimeStatus | null>(null);
+  const [operatorStatus, setOperatorStatus] =
+    useState<MissionOperatorStatus | null>(null);
+
   const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isBusy, setIsBusy] = useState(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   async function loadDashboardData() {
     try {
-      setIsRefreshing(true);
       setErrorMessage(null);
 
-      const [summaryResponse, recentEvents] = await Promise.all([
-        fetchMissionSummary(),
-        fetchRecentEvents(25),
-      ]);
+      const runtime = await fetchRuntimeStatus();
+      setRuntimeStatus(runtime);
 
-      setSummary(summaryResponse.summary);
-      setEvents(recentEvents);
+      if (runtime.state === "IDLE") {
+        setOperatorStatus(null);
+        setLastUpdatedAt(new Date());
+        return;
+      }
+
+      try {
+        const status = await fetchOperatorStatus();
+        setOperatorStatus(status);
+      } catch {
+        setOperatorStatus(null);
+      }
+
       setLastUpdatedAt(new Date());
     } catch (error) {
       const message =
@@ -36,7 +56,48 @@ function App() {
       setErrorMessage(message);
     } finally {
       setIsLoading(false);
-      setIsRefreshing(false);
+    }
+  }
+
+  async function handleStartMission(
+    scenario: string,
+    tickIntervalS: number,
+  ) {
+    try {
+      setIsBusy(true);
+      setErrorMessage(null);
+
+      await startRuntime({
+        scenario,
+        tick_interval_s: tickIntervalS,
+      });
+
+      await loadDashboardData();
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Could not start mission";
+
+      setErrorMessage(message);
+    } finally {
+      setIsBusy(false);
+    }
+  }
+
+  async function handleStopMission() {
+    try {
+      setIsBusy(true);
+      setErrorMessage(null);
+
+      await stopRuntime("Operator ended the mission.");
+
+      await loadDashboardData();
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Could not stop mission";
+
+      setErrorMessage(message);
+    } finally {
+      setIsBusy(false);
     }
   }
 
@@ -55,7 +116,7 @@ function App() {
   return (
     <main className="page">
       <DashboardHeader
-        isRefreshing={isRefreshing}
+        isRefreshing={isBusy}
         lastUpdatedAt={lastUpdatedAt}
         onRefresh={() => void loadDashboardData()}
       />
@@ -64,12 +125,40 @@ function App() {
 
       {errorMessage && <ApiErrorCard message={errorMessage} />}
 
-      {summary && (
-        <div className="dashboard-stack">
-          <MissionOverview summary={summary} />
-          <RecentEventsTable events={events} />
-        </div>
-      )}
+      <div className="dashboard-stack">
+        <MissionControlPanel
+          runtimeStatus={runtimeStatus}
+          isBusy={isBusy}
+          onStartMission={handleStartMission}
+          onStopMission={handleStopMission}
+        />
+
+        {operatorStatus && (
+          <>
+            <MissionOverview
+              summary={{
+                mission_id: operatorStatus.mission_id,
+                scenario: operatorStatus.scenario,
+                status: operatorStatus.status,
+                events_received: operatorStatus.events_received,
+                current_surface_mission_state:
+                  operatorStatus.current_surface_mission_state,
+                current_robot_mode:
+                  operatorStatus.divers[0]?.robot_mode ?? null,
+                emergency_event_count: operatorStatus.emergency_event_count,
+                warning_event_count: operatorStatus.warning_event_count,
+                stale_data_event_count: operatorStatus.stale_data_event_count,
+              }}
+            />
+
+            <section className="diver-grid">
+              {operatorStatus.divers.map((diver) => (
+                <DiverStatusCard key={diver.diver_id} diver={diver} />
+              ))}
+            </section>
+          </>
+        )}
+      </div>
     </main>
   );
 }
