@@ -239,7 +239,7 @@ class DiverWearableSimulator:
         Simulate compass heading in degrees.
 
         The heading slowly oscillates around initial_heading_deg to represent natural diver
-        movement. A small random noise component is added to imitate sensor variation.
+        movement. A small random noise components is added to imitate sensor variation.
 
         Returned value is always normalized to:
             0 <= heading < 360

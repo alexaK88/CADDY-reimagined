@@ -201,7 +201,7 @@ class MissionLogger:
 
         The format follows a standard operational logging style:
 
-            YYYY-MM-DD HH:MM:SS,mmm - LEVEL - [component] message
+            YYYY-MM-DD HH:MM:SS,mmm - LEVEL - [components] message
 
         This is useful for mission review, debugging, and demo output.
         """
