@@ -21,8 +21,8 @@ from dataclasses import dataclass
 from datetime import datetime, timezone, timedelta
 from typing import Iterator
 
-from schemas import RawSensorValues, RawWearablePacket, ScenarioName
-from utils.logger import get_logger
+from diver_wearable_unit_simulator.schemas import RawSensorValues, RawWearablePacket, ScenarioName
+from diver_wearable_unit_simulator.utils.logger import get_logger
 
 logger = get_logger(__name__)
 

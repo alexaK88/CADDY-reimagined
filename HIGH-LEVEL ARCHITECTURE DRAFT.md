@@ -6,7 +6,7 @@
 │ - simulated emergency button │
 │ - local diver state          │
 └───────────────┬──────────────┘
-                │ DiverState packets
+                │ packets sent (DiverState)
                 ▼
 ┌──────────────────────────────┐
 │ Underwater Communication Sim │

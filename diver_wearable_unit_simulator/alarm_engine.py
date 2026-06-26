@@ -15,9 +15,18 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from schemas import (AlarmEvent, AlarmSeverity, DiverSafetyPacket, DiverState, GasState, LinkState,
-                     MotionState, SafetyState, )
-from utils.logger import get_logger
+from diver_wearable_unit_simulator.utils.logger import get_logger
+from shared.shared_protocol import (
+    AlarmEvent,
+    AlarmSeverity,
+    DiverSafetyPacket,
+    DiverState,
+    GasState,
+    LinkState,
+    MotionState,
+    SafetyState,
+)
+
 
 logger = get_logger(__name__)
 

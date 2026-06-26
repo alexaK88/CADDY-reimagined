@@ -13,8 +13,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from schemas import (CleanSensorPacket, DivePhase, DiverState, GasState, LinkState, MotionState, )
-
+from diver_wearable_unit_simulator.schemas import CleanSensorPacket
+from shared.shared_protocol import (
+    DivePhase,
+    DiverState,
+    GasState,
+    LinkState,
+    MotionState,
+)
 
 @dataclass(frozen=True)
 class StateEstimatorConfig:

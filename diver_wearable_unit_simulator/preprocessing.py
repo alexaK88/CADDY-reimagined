@@ -13,8 +13,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from schemas import CleanSensorPacket, RawWearablePacket
-from utils.logger import get_logger
+from diver_wearable_unit_simulator.schemas import CleanSensorPacket, RawWearablePacket
+from diver_wearable_unit_simulator.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
